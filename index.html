@@ -1,12 +1,240 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE HTML>
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Document</title>
+<meta charset="UTF-8" />
+<title>动态多宫格</title>
+<style type="text/css">
+</style>
+
+<script type="text/javascript">
+    window.onload = function ()
+    {
+        Grids.init ();
+    }
+    var Grids =
+    {
+        row: 4,
+        col: 4,
+        arr : [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+        ],
+        init : function ()
+        {
+            document.body.style['text-align'] = 'center';
+            var table = document.createElement ('table');
+            table.style['margin'] = '0 auto';
+            document.title = table.id = 'Grids' + this.row * this.col;
+            document.title += " 还未开始游戏";
+            for ( var i = 0; i < this.row + 1; i++)
+            {
+                var tr = table.insertRow (table.rows.length);
+                for ( var j = 0; j < this.col; j++)
+                {
+                    if (i <= this.row-1 && j <= this.col-1)
+                    {
+                        var td = tr.insertCell (tr.cells.length);
+                        var btn = document.createElement ("input");
+                        btn.type = 'button';
+                        btn.style.width = '50px';
+                        btn.style.height = '50px';
+                        td.appendChild (btn);
+                        if (i <= this.row-2 || i == this.row-1 && j <= this.col-2)
+                        {
+                            var start = Math.floor (Math.random () * this.arr.length);
+                            btn.value = this.arr[start];
+                            this.arr.splice (start, 1);
+                        }
+                        else
+                        {
+                            btn.value = '';
+                        }
+                    }
+                }
+                if (i == this.row)
+                {
+                    var td = tr.insertCell (tr.cells.length);
+                    td.colSpan = this.col;
+                    td.style.textAlign = 'center';
+                    var btn = document.createElement ("input");
+                    btn.type = 'button';
+                    btn.value = '开始';
+                    btn.style.width = '50px';
+                    btn.style.height = '30px';
+                    btn.onclick = function ()
+                    {
+                        var table = this.parentElement.parentElement.parentElement;
+                        var rs = table.rows;
+                        for ( var j = 0; j < rs.length - 1; j++)
+                        {
+                            var cs = rs[j].cells;
+                            for ( var k = 0; k < cs.length; k++)
+                            {
+                                cs[k].children[0].onclick = function ()
+                                {
+                                    Grids.go (this);
+                                }
+                            }
+                        }
+                        document.title = document.title.replace(/(Grids\d+).*/, '$1 已开始');
+                    }
+                    td.appendChild (btn);
+                }
+            }
+            document.body.appendChild (table);
+            Grids.key();
+            Grids.isOver(table);
+        },
+        find : function (p, row, col)
+        {
+            var reg = /^\s*|\s*$/g;
+            var rc = [
+                    [
+                            row - 1, col
+                    ], [
+                            row + 1, col
+                    ], [
+                            row, col - 1
+                    ], [
+                            row, col + 1
+                    ]
+            ];
+            for ( var i = 0; i < rc.length; i++)
+            {
+                if (rc[i][0] >= 0 && rc[i][0] < this.col && rc[i][1] >= 0 && rc[i][1] < this.col)
+                {
+                    if (p.rows[rc[i][0]].cells[rc[i][1]].children[0].value.replace (reg, '') == '')
+                    {
+                        return [
+                                rc[i][0], rc[i][1]
+                        ];
+                    }
+                }
+            }
+            return null;
+        },
+        go : function (btn)
+        {
+            var p = btn.parentElement.parentElement.parentElement;
+            var row = btn.parentElement.parentElement.rowIndex;
+            var col = btn.parentElement.cellIndex;
+            var site = Grids.find (p, row, col);
+            if (!!site)
+            {
+                var r = site[0], c = site[1];
+                var replaced = p.rows[r].cells[c].children[0];
+                p.rows[row].cells[col].appendChild (replaced);
+                p.rows[r].cells[c].appendChild (btn);
+            }
+            this.isOver(p);
+        },
+        key: function ()
+        {
+            var table = document.getElementById("Grids" + this.row * this.col);
+            var rows = table.rows;
+            document.onkeyup = function (e)
+            {
+                e = e || window.event;
+                var keycode = e.keyCode;
+                // up, down, left, right
+                if (!/^(38|40|37|39)$/.test(keycode))
+                {
+                    return false;
+                }
+                var btns = [], r = -1, c = -1;
+                for ( var i = 0; i < rows.length - 1; i++)
+                {
+                    var ri = rows[i];
+                    for ( var j = 0; j < ri.cells.length; j++)
+                    {
+                        var btn = ri.cells[j].children[0];
+                        if (btn.value === '')
+                        {
+                            r = i;
+                            c = j;
+                            break;
+                        }
+                    }
+                }
+                var site = [[r+1,c],[r-1,c],[r, c+1],[r, c-1]];
+                for ( var i = 0; i < site.length; i++)
+                {
+                    var rs = rows[site[i][0]];
+                    if (!!rs)
+                    {
+                        if (rs.cells.length == Grids.col)
+                        {
+                            var temp = rs.cells[site[i][1]];
+                            if (!!temp)
+                            {
+                                btns.push(temp.children[0]);
+                            }
+                            else 
+                            {
+                                btns.push(null);   
+                            }
+                        }
+                        else 
+                        {
+                            btns.push(null);   
+                        }
+                    }
+                    else 
+                    {
+                        btns.push(null);   
+                    }
+                }
+                switch (keycode)
+                {
+                    case 38:
+                        !!btns[0] ? Grids.go(btns[0]) : 0;
+                        break;
+                    case 40:
+                        !!btns[1] ? Grids.go(btns[1]) : 0;
+                        break;
+                    case 37:
+                        !!btns[2] ? Grids.go(btns[2]) : 0;
+                        break;
+                    case 39:
+                        !!btns[3] ? Grids.go(btns[3]) : 0;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        },
+        isOver: function (table)
+        {
+            var rows = table.rows, flag = true;
+            L: for ( var i = 0; i < rows.length - 1; i++)
+            {
+                var r = rows[i], len = r.cells.length;
+                if (i == rows.length - 2)
+                {
+                    len = 1;
+                }
+                for ( var j = 0; j < len; j++)
+                {
+                    if ( r.cells[j].children[0].value != i * r.cells.length + j + 1 )
+                    {
+                        flag = false;
+                        break L;
+                    }
+                }
+            }
+            if (flag)
+            {
+                alert ('YOU WIN !');
+                return true;
+            }
+            return false;
+        }
+    };
+</script>
 </head>
 <body>
-    <span>
-        个人博客主页
-    </span>
+	<span>
+		博客主页：
+	</span>
+	<div>动态多宫格游戏</div>
 </body>
 </html>
